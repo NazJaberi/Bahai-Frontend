@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function ChatMessage({ role, html, text }) {
+export default function ChatMessage({ role, text, children }) {
   const isUser = role === 'user'
   const avatar = isUser ? '🙂' : '🕊️'
   const label = isUser ? 'You' : 'Assistant'
@@ -10,12 +10,13 @@ export default function ChatMessage({ role, html, text }) {
       <div className="avatar" aria-label={label} title={label}>
         {avatar}
       </div>
-      <div
-        className={`bubble ${isUser ? 'user' : 'bot'}`}
-        {...(isUser
-          ? { children: <pre className="plaintext">{text}</pre> }
-          : { dangerouslySetInnerHTML: { __html: html || '' } })}
-      />
+      <div className={`bubble ${isUser ? 'user' : 'bot'}`}>
+        {isUser ? (
+          <pre className="plaintext">{text}</pre>
+        ) : (
+          children
+        )}
+      </div>
     </div>
   )
 }

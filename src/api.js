@@ -1,38 +1,39 @@
-// Robust API client for your Cloudflare Worker
-// - In DEV: always call "/api/ask" (proxied by Vite to your Worker).
-// - In PROD: call VITE_API_BASE + "/ask" (no double /ask, trailing slashes removed).
+// Simple client for your Cloudflare Worker RAG API.
+// DEV: calls "/api/ask" (proxied by Vite).
+// PROD: calls VITE_API_BASE + "/ask" (no double /ask).
 
 const DEV = import.meta.env.DEV
 
 function normalizeBase(raw) {
   const s = (raw || '').trim()
   if (!s) return ''
-  // remove trailing slash(es)
-  const noSlash = s.replace(/\/+$/, '')
-  // if someone accidentally put "/ask" in the env, strip it
-  return noSlash.replace(/\/ask$/i, '')
+  return s.replace(/\/+$/, '').replace(/\/ask$/i, '')
 }
 
 const prodBase = normalizeBase(import.meta.env.VITE_API_BASE)
 
-export async function ask(question, { signal } = {}) {
+export async function ask(payload, { signal } = {}) {
+  // payload: { q, explain?, topK?, scoreMin?, ctx? }
+  if (!payload || typeof payload.q !== 'string' || !payload.q.trim()) {
+    throw new Error('Question "q" is required')
+  }
+
   const base = DEV ? '/api' : prodBase
   const url = `${base}/ask`
 
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    // mode: 'cors' is default in browsers; explicit is fine
     mode: 'cors',
-    body: JSON.stringify({ q: question }),
+    body: JSON.stringify(payload),
     signal
   })
 
   if (!res.ok) {
     let msg = `HTTP ${res.status}`
     try {
-      const data = await res.json()
-      msg = data.error || data.message || msg
+      const err = await res.json()
+      msg = err?.error || err?.message || msg
     } catch {
       const text = await res.text()
       if (text) msg = text
@@ -41,37 +42,17 @@ export async function ask(question, { signal } = {}) {
   }
 
   const data = await res.json()
-  const answer =
-    data?.answer ??
-    data?.text ??
-    data?.result ??
-    (typeof data === 'string' ? data : JSON.stringify(data, null, 2))
 
-  const citationsRaw =
-    Array.isArray(data?.citations) ? data.citations :
-    Array.isArray(data?.sources) ? data.sources :
-    Array.isArray(data?.refs) ? data.refs : []
+  // Normalize shape defensively
+  const answer = typeof data?.answer === 'string' ? data.answer : ''
+  const matches = Array.isArray(data?.matches) ? data.matches : []
+  const expansions = Array.isArray(data?.expansions) ? data.expansions : []
+  const explain = Boolean(data?.explain)
 
-  const citations = citationsRaw.map((c) => normalizeCitation(c))
-  return { answer, citations }
-}
+  // Ensure each match has a numeric n (1-based)
+  matches.forEach((m, i) => {
+    if (typeof m?.n !== 'number') m.n = i + 1
+  })
 
-function normalizeCitation(c) {
-  try {
-    if (typeof c === 'string') {
-      try {
-        const u = new URL(c)
-        return { label: u.hostname.replace(/^www\./, ''), url: u.toString() }
-      } catch {
-        return { label: c }
-      }
-    }
-    if (c && typeof c === 'object') {
-      const url = c.url || c.href || null
-      const label =
-        c.title || c.label || (url ? new URL(url).hostname.replace(/^www\./, '') : 'Source')
-      return { label, url: url || undefined }
-    }
-  } catch {}
-  return { label: 'Source' }
+  return { answer, matches, expansions, explain }
 }

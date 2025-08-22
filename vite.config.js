@@ -5,7 +5,6 @@ export default ({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const target = (env.VITE_API_BASE || '').replace(/\/+$/, '').replace(/\/ask$/i, '')
 
-  // In dev, proxy /api/* → your worker base
   const proxy = target
     ? {
         '/api': {
