@@ -10,7 +10,6 @@ export default ({ mode }) => {
         '/api': {
           target,
           changeOrigin: true,
-          // /api/ask → /ask
           rewrite: (path) => path.replace(/^\/api/, '')
         }
       }

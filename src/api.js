@@ -1,7 +1,3 @@
-// Simple client for your Cloudflare Worker RAG API.
-// DEV: calls "/api/ask" (proxied by Vite).
-// PROD: calls VITE_API_BASE + "/ask" (no double /ask).
-
 const DEV = import.meta.env.DEV
 
 function normalizeBase(raw) {
@@ -12,8 +8,10 @@ function normalizeBase(raw) {
 
 const prodBase = normalizeBase(import.meta.env.VITE_API_BASE)
 
+/**
+ * payload = { q: string, explain?: boolean, simplify?: boolean, topK?: number, scoreMin?: number, ctx?: string|string[] }
+ */
 export async function ask(payload, { signal } = {}) {
-  // payload: { q, explain?, topK?, scoreMin?, ctx? }
   if (!payload || typeof payload.q !== 'string' || !payload.q.trim()) {
     throw new Error('Question "q" is required')
   }
@@ -43,16 +41,16 @@ export async function ask(payload, { signal } = {}) {
 
   const data = await res.json()
 
-  // Normalize shape defensively
   const answer = typeof data?.answer === 'string' ? data.answer : ''
   const matches = Array.isArray(data?.matches) ? data.matches : []
   const expansions = Array.isArray(data?.expansions) ? data.expansions : []
   const explain = Boolean(data?.explain)
+  const simplify = Boolean(data?.simplify)
+  const debug = data?.debug ?? null
 
-  // Ensure each match has a numeric n (1-based)
   matches.forEach((m, i) => {
     if (typeof m?.n !== 'number') m.n = i + 1
   })
 
-  return { answer, matches, expansions, explain }
+  return { answer, matches, expansions, explain, simplify, debug }
 }

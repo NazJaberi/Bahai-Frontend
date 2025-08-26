@@ -93,8 +93,30 @@ body {
 }
 .bubble.bot { background: var(--bubble-bot); }
 
-/* Plain text (user) */
+/* User plaintext */
 .plaintext { margin: 0; font-family: inherit; white-space: pre-wrap; }
+
+/* Markdown */
+.md :is(p, ul, ol, blockquote, pre, h1, h2, h3, h4) { margin: 0.4em 0; }
+.md p:first-child { margin-top: 0; }
+.md p:last-child { margin-bottom: 0; }
+.md a { color: var(--accent); text-decoration: none; }
+.md a:hover { text-decoration: underline; }
+.md code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  background: #111827;
+  border: 1px solid var(--border);
+  padding: 0.15em 0.35em;
+  border-radius: 6px;
+}
+.md pre {
+  background: #111827;
+  border: 1px solid var(--border);
+  padding: 10px;
+  overflow: auto;
+  border-radius: 8px;
+}
+.md pre code { background: transparent; border: none; padding: 0; }
 
 /* Answer block */
 .answerBlock { display: grid; gap: 8px; }
@@ -114,7 +136,7 @@ body {
 }
 .ghost.small:hover { border-color: color-mix(in oklab, var(--accent-2) 30%, var(--border)); }
 
-/* Citation badges inside answer */
+/* Citation badge */
 .citeBadge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 24px; height: 22px; padding: 0 6px;
@@ -189,6 +211,23 @@ body {
 
 .sourceActions { margin-top: 8px; display: flex; gap: 8px; }
 
+/* Debug box */
+.debugBox {
+  margin-top: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  background: #0e1526;
+}
+.debugBox > summary {
+  cursor: pointer; color: var(--muted);
+}
+.debugPre {
+  margin: 8px 0 0; white-space: pre-wrap;
+  background: #0d1322; border: 1px solid var(--border);
+  padding: 8px; border-radius: 8px; font-size: 12px;
+}
+
 /* Composer */
 .composer {
   position: sticky; bottom: 0;
@@ -215,9 +254,7 @@ button.send {
 }
 button.send:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.options {
-  max-width: 900px; margin: 10px auto 0;
-}
+.options { max-width: 900px; margin: 10px auto 0; }
 .options > summary {
   cursor: pointer; font-size: 13px; color: var(--muted);
   border: 1px dashed var(--border); border-radius: 999px;
@@ -232,12 +269,8 @@ button.send:disabled { opacity: 0.6; cursor: not-allowed; }
 .optCtx { grid-column: 1 / -1; }
 .optCtx textarea { width: 100%; min-height: 60px; }
 
-.error {
-  max-width: 900px; margin: 10px auto 0; color: #fecaca;
-}
-.fineprint {
-  max-width: 900px; margin: 8px auto 0; font-size: 12px; color: var(--muted);
-}
+.error { max-width: 900px; margin: 10px auto 0; color: #fecaca; }
+.fineprint { max-width: 900px; margin: 8px auto 0; font-size: 12px; color: var(--muted); }
 
 /* Typing dots */
 .typing { display: inline-flex; gap: 6px; }

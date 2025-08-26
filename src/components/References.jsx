@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react'
 import SourceCard from './SourceCard.jsx'
 
 export default function References({ matches, makeRefId }) {
-  // default: expand [1], collapse others
   const defaultOpen = useMemo(() => {
     const s = new Set()
     const first = matches.find((m) => m.n === 1) ? 1 : (matches[0]?.n ?? 1)
@@ -32,7 +31,7 @@ export default function References({ matches, makeRefId }) {
   return (
     <section className="refsWrap">
       <div className="refsHeader">
-        <div className="refsTitle">References</div>
+        <div className="refsTitle">Sources</div>
         <div className="refsActions">
           <button className="ghost small" onClick={expandAll}>Expand all</button>
           <button className="ghost small" onClick={collapseAll}>Collapse all</button>

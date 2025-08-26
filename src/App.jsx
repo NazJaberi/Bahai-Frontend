@@ -5,7 +5,7 @@ import TypingDots from './components/TypingDots.jsx'
 import AnswerBlock from './components/AnswerBlock.jsx'
 import References from './components/References.jsx'
 
-const STORAGE_KEY = 'bahai_chat_history_v2'
+const STORAGE_KEY = 'bahai_chat_history_v3'
 
 export default function App() {
   const [messages, setMessages] = useState(() => {
@@ -21,11 +21,15 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Options per the API
+  // API options
   const [explain, setExplain] = useState(false)
+  const [simplify, setSimplify] = useState(false)
   const [topK, setTopK] = useState(6)
   const [scoreMin, setScoreMin] = useState(0.4)
   const [ctx, setCtx] = useState('')
+
+  // Dev mode
+  const [devMode, setDevMode] = useState(false)
 
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
@@ -100,6 +104,7 @@ export default function App() {
       const payload = {
         q: text,
         explain,
+        simplify,
         topK: clampTopK(topK),
         scoreMin: clampScore(scoreMin),
         ...(ctx.trim() ? { ctx: ctx.trim() } : {})
@@ -110,7 +115,7 @@ export default function App() {
       const botMsg = {
         id: newId(),
         role: 'assistant',
-        data, // { answer, matches, expansions, explain }
+        data, // { answer, matches, expansions, explain, simplify, debug? }
         createdAt: Date.now()
       }
       setMessages((prev) => [...prev, botMsg])
@@ -120,7 +125,13 @@ export default function App() {
       const botMsg = {
         id: newId(),
         role: 'assistant',
-        data: { answer: `Sorry—there was an error.\n\n> ${String(err?.message || err)}`, matches: [], expansions: [], explain: false },
+        data: {
+          answer: `Sorry—there was an error.\n\n> ${String(err?.message || err)}`,
+          matches: [],
+          expansions: [],
+          explain: false,
+          simplify: false
+        },
         createdAt: Date.now()
       }
       setMessages((prev) => [...prev, botMsg])
@@ -133,12 +144,12 @@ export default function App() {
   const headerSubtitle = useMemo(
     () =>
       messages.length === 0
-        ? 'Ask about Bahá’í writings—answers cite passages with [n] references.'
+        ? 'Ask about Bahá’í writings—answers include [n] citations with sources below.'
         : 'Shift+Enter: new line • Enter: send • Ctrl/Cmd+K: new chat',
     [messages.length]
   )
 
-  // Global shortcut: Ctrl/Cmd+K clears chat
+  // Ctrl/Cmd+K clears chat
   useEffect(() => {
     const onGlobal = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -161,6 +172,9 @@ export default function App() {
           </div>
         </div>
         <div className="controls">
+          <button className="ghost" onClick={() => setDevMode((v) => !v)} title="Toggle developer mode">
+            {devMode ? 'Developer: On' : 'Developer: Off'}
+          </button>
           <button className="ghost" onClick={clearChat} title="Clear chat (Ctrl/Cmd+K)">
             New chat
           </button>
@@ -189,20 +203,34 @@ export default function App() {
             )
           }
 
-          // Assistant
-          const { answer, matches, expansions, explain } = m.data || { answer: '', matches: [], expansions: [], explain: false }
+          const { answer, matches, expansions, explain, simplify, debug } = m.data || {
+            answer: '',
+            matches: [],
+            expansions: [],
+            explain: false,
+            simplify: false,
+            debug: null
+          }
           const makeRefId = (n) => `ref-${m.id}-${n}`
+
+          // Label logic
+          const label = explain && simplify
+            ? 'Explanation (simplified)'
+            : explain
+              ? 'Explanation'
+              : simplify
+                ? 'Simplified answer'
+                : 'Concise answer'
 
           return (
             <div className="row" key={m.id}>
               <ChatMessage role="assistant">
                 <AnswerBlock
-                  label={explain ? 'Explanation' : 'Concise answer'}
+                  label={label}
                   answer={answer}
                   onCiteClick={(n) => {
                     const el = document.getElementById(makeRefId(n))
                     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                    // Add a temporary flash
                     el?.classList.add('flash')
                     setTimeout(() => el?.classList.remove('flash'), 900)
                   }}
@@ -220,14 +248,18 @@ export default function App() {
                 )}
 
                 {matches?.length > 0 ? (
-                  <References
-                    matches={matches}
-                    makeRefId={makeRefId}
-                  />
+                  <References matches={matches} makeRefId={makeRefId} />
                 ) : (
                   <div className="noRefs">
                     <em>No passages retrieved.</em> Try mentioning a book, tablet, theme, or figure.
                   </div>
+                )}
+
+                {devMode && debug && (
+                  <details className="debugBox" open>
+                    <summary>Debug</summary>
+                    <pre className="debugPre">{JSON.stringify(debug, null, 2)}</pre>
+                  </details>
                 )}
               </ChatMessage>
             </div>
@@ -277,6 +309,15 @@ export default function App() {
             </label>
 
             <label className="optRow">
+              <input
+                type="checkbox"
+                checked={simplify}
+                onChange={(e) => setSimplify(e.target.checked)}
+              />
+              <span>Simplify language</span>
+            </label>
+
+            <label className="optRow">
               <span>Top K</span>
               <input
                 type="number"
@@ -313,7 +354,7 @@ export default function App() {
 
         {error && <div className="error" role="alert">Error: {error}</div>}
         <div className="fineprint">
-          The answer includes bracketed citations like [1]; see “References” below the answer.
+          Answers are Markdown with bracketed citations like [1]; see Sources below the answer.
         </div>
       </footer>
     </div>
